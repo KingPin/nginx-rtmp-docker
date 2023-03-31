@@ -67,7 +67,7 @@ jobs:
       -
         name: Test
         run: |
-          docker run --rm docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:test doxygen --help
+          docker run --rm docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:test nginx -h
       - 
         name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
