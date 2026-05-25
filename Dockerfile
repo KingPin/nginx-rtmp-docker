@@ -2,13 +2,19 @@
 
 ARG DEBIAN_TAG=trixie-slim
 ARG NGINX_VERSION=1.30.2
+ARG NGINX_SHA256=7df3090907fca3cc0e456d6dc00ceb230da74ea88026ceff0affc29dbbd9ac4c
 ARG NGINX_RTMP_COMMIT=6c7719d0ba32e00b563ec70bd43dad11960fa9c4
+ARG NGINX_RTMP_SHA256=20e398b7bbfb5c50a9c11b50dd61fb176941593355e7a820b38d31c71d8c19e6
 ARG HLS_JS_VERSION=1.5.17
+ARG HLS_JS_SHA256=484054e8cd03d3f6d1781fb7f402bdc318d8a4c527f933a95c624e27cc9a9470
 
 FROM debian:${DEBIAN_TAG} AS builder
 ARG NGINX_VERSION
+ARG NGINX_SHA256
 ARG NGINX_RTMP_COMMIT
+ARG NGINX_RTMP_SHA256
 ARG HLS_JS_VERSION
+ARG HLS_JS_SHA256
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -23,10 +29,12 @@ RUN apt-get update && \
 WORKDIR /tmp/build
 
 RUN curl -fsSL "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -o nginx.tar.gz && \
+    echo "${NGINX_SHA256}  nginx.tar.gz" | sha256sum -c - && \
     tar -xzf nginx.tar.gz && \
     rm nginx.tar.gz
 
 RUN curl -fsSL "https://github.com/arut/nginx-rtmp-module/archive/${NGINX_RTMP_COMMIT}.tar.gz" -o rtmp.tar.gz && \
+    echo "${NGINX_RTMP_SHA256}  rtmp.tar.gz" | sha256sum -c - && \
     tar -xzf rtmp.tar.gz && \
     mv "nginx-rtmp-module-${NGINX_RTMP_COMMIT}" nginx-rtmp-module && \
     rm rtmp.tar.gz
@@ -34,7 +42,8 @@ RUN curl -fsSL "https://github.com/arut/nginx-rtmp-module/archive/${NGINX_RTMP_C
 # Vendored hls.js for the dashboard's preview player on non-Safari browsers.
 RUN curl -fsSL \
         "https://cdn.jsdelivr.net/npm/hls.js@${HLS_JS_VERSION}/dist/hls.min.js" \
-        -o /hls.min.js
+        -o /hls.min.js && \
+    echo "${HLS_JS_SHA256}  /hls.min.js" | sha256sum -c -
 
 RUN cd "nginx-${NGINX_VERSION}" && \
     ./configure \
@@ -100,7 +109,10 @@ RUN mkdir -p /var/log/nginx /var/run/nginx /var/lock/nginx \
              /var/cache/nginx/uwsgi /var/cache/nginx/scgi && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log && \
-    chown -R nginx:nginx /var/log/nginx /var/run/nginx /var/lock/nginx /var/cache/nginx /etc/nginx
+    chown -R nginx:nginx /var/log/nginx /var/run/nginx /var/lock/nginx /var/cache/nginx
+# /etc/nginx intentionally stays root-owned: nginx only needs read access to
+# its config, and root ownership limits the blast radius of an in-container
+# compromise.
 
 USER nginx
 

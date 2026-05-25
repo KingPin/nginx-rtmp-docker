@@ -98,7 +98,9 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab
-        if: always()
+        # Forked-PR runs get a read-only GITHUB_TOKEN, so security-events: write
+        # is unavailable and this step would fail. Skip it on fork PRs.
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif

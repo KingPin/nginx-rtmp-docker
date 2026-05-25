@@ -35,6 +35,11 @@ Pick any string for `<stream-key>`; the `live` application has no
 authentication. Don't expose 1935 directly to the public internet without a
 firewall, proxy, or `on_publish` callback in front of it.
 
+The HTTP endpoints on 8080 also have no authentication. `/stat` exposes
+stream keys and connected clients, and the dashboard renders the same data;
+put port 8080 behind a reverse proxy with auth, an IP allow-list, or both
+before exposing it publicly.
+
 ## Dashboard
 
 Open `http://<host>:8080/` for a read-only operator view: live stream list,
