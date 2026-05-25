@@ -1,1 +1,140 @@
 # nginx-rtmp-docker
+
+A small Debian-based Docker image that compiles [nginx](https://nginx.org/) with
+[arut/nginx-rtmp-module](https://github.com/arut/nginx-rtmp-module) statically
+linked in. It accepts RTMP ingest, re-publishes the stream as HLS for browser
+playback, and exposes a stat page and a health endpoint over HTTP.
+
+Published images are built for `linux/amd64` and `linux/arm64` and pushed to:
+
+```
+ghcr.io/kingpin/nginx-rtmp-docker:latest
+```
+
+## Quick start
+
+```sh
+docker run --rm -d \
+  --name nginx-rtmp \
+  -p 1935:1935 \
+  -p 8080:8080 \
+  ghcr.io/kingpin/nginx-rtmp-docker:latest
+```
+
+Or with Docker Compose, using the `compose.yaml` at the repo root:
+
+```sh
+docker compose up -d
+```
+
+## Endpoints
+
+| Purpose       | URL                                            |
+| ------------- | ---------------------------------------------- |
+| RTMP ingest   | `rtmp://<host>:1935/live/<stream-key>`         |
+| HLS playback  | `http://<host>:8080/hls/<stream-key>.m3u8`     |
+| Dashboard     | `http://<host>:8080/`                          |
+| Stats (XML)   | `http://<host>:8080/stat`                      |
+| Health probe  | `http://<host>:8080/healthz`                   |
+
+Pick any string for `<stream-key>`; the `live` application has no
+authentication. Don't expose 1935 directly to the public internet without a
+firewall, proxy, or `on_publish` callback in front of it.
+
+The HTTP endpoints on 8080 also have no authentication. `/stat` exposes
+stream keys and connected clients, and the dashboard renders the same data;
+put port 8080 behind a reverse proxy with auth, an IP allow-list, or both
+before exposing it publicly.
+
+## Dashboard
+
+Open `http://<host>:8080/` for a read-only operator view: live stream list,
+per-stream bitrate / resolution / client count, ingest + playback URLs, and
+an inline HLS preview player. The page polls `/stat` every 5 seconds; it has
+no authentication of its own — put whatever auth you need in front of port
+8080.
+
+The dashboard is plain HTML/CSS/JS served by nginx — no extra process. The
+preview player uses [hls.js](https://github.com/video-dev/hls.js) on
+Chromium/Firefox and native HLS on Safari/iOS. The hls.js version is pinned
+in the `Dockerfile` (`ARG HLS_JS_VERSION`) and vendored into the image at
+build time.
+
+## Publish a test stream
+
+With ffmpeg:
+
+```sh
+ffmpeg -re -f lavfi -i testsrc=size=1280x720:rate=30 \
+       -f lavfi -i sine=frequency=1000 \
+       -c:v libx264 -preset veryfast -tune zerolatency -g 60 \
+       -c:a aac -ar 44100 -b:a 128k \
+       -f flv rtmp://localhost:1935/live/test
+```
+
+With OBS Studio:
+
+- **Server**: `rtmp://localhost:1935/live`
+- **Stream Key**: anything, e.g. `test`
+
+Then open `http://localhost:8080/hls/test.m3u8` in any HLS-capable player
+(VLC, hls.js, Safari).
+
+## Build from source
+
+```sh
+git clone https://github.com/KingPin/nginx-rtmp-docker.git
+cd nginx-rtmp-docker
+docker build -t nginx-rtmp:dev .
+```
+
+The Dockerfile is a two-stage build (`builder` + `runtime`). The runtime image
+runs as a non-root `nginx` user (uid 101) and ships only the libraries nginx
+actually links against — no toolchain.
+
+## What's inside
+
+| Component                   | Pin                                          |
+| --------------------------- | -------------------------------------------- |
+| Base image                  | `debian:trixie-slim` (Debian 13)             |
+| nginx                       | `1.30.2` (stable)                            |
+| arut/nginx-rtmp-module      | commit `6c7719d` (post-1.2.2 master)         |
+| Architectures published     | `linux/amd64`, `linux/arm64`                 |
+
+To bump nginx or the RTMP module, edit the `ARG` lines at the top of the
+`Dockerfile`. That's the single source of truth.
+
+## Configuration
+
+`nginx.conf` lives in the image at `/etc/nginx/nginx.conf`. To override it,
+mount your own config:
+
+```sh
+docker run --rm -d \
+  -v "$PWD/nginx.conf:/etc/nginx/nginx.conf:ro" \
+  -p 1935:1935 -p 8080:8080 \
+  ghcr.io/kingpin/nginx-rtmp-docker:latest
+```
+
+If you need to record streams, mount a writable volume at
+`/var/cache/nginx/hls` (or wherever you point `hls_path`), and ensure it's
+writable by uid 101.
+
+## Examples
+
+Drop-in `nginx.conf` variants for common setups live in [`examples/`](examples/):
+
+- **Recording to disk** — every publish written as a timestamped flv
+- **Multi-target restream** — mirror one ingest to YouTube, Twitch, etc.
+  simultaneously
+- **on_publish authentication** — validate stream keys via an HTTP callback
+- **/stat + dashboard allow-list** — restrict the operator surfaces to a
+  CIDR
+- **Caddy TLS sidecar** — reverse-proxy the HTTP endpoints behind
+  Let's Encrypt with basic auth
+
+See [`examples/README.md`](examples/README.md) for how to mount one.
+
+## License
+
+MIT. See `LICENSE`.

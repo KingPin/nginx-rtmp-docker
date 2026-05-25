@@ -1,0 +1,42 @@
+# Reverse-proxy the dashboard, /hls, /stat, and /healthz behind Caddy
+# with automatic Let's Encrypt TLS and HTTP basic auth on the dashboard
+# and /stat. RTMP ingest on 1935 stays direct — RTMP is not HTTP and is
+# not something Caddy proxies sensibly. Lock 1935 down with a firewall
+# or move it to a private interface if you need authenticated ingest.
+#
+# Before `docker compose up`:
+#   1. Point your DNS A/AAAA records at this host.
+#   2. Edit Caddyfile: replace stream.example.com and the basic-auth
+#      credentials (generate a hash with `caddy hash-password`).
+#   3. Open ports 80 and 443 to the public internet so the ACME HTTP-01
+#      challenge can complete.
+
+services:
+  nginx-rtmp:
+    image: ${NGINX_RTMP_IMAGE:-ghcr.io/kingpin/nginx-rtmp-docker:latest}
+    container_name: nginx-rtmp
+    restart: unless-stopped
+    # Only expose 1935 on the host; 8080 stays on the internal docker
+    # network and is only reachable through Caddy.
+    ports:
+      - "1935:1935"
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - nginx-rtmp
+
+volumes:
+  caddy_data:
+  caddy_config:
