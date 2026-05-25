@@ -13,7 +13,7 @@ RUN apt-get update && \
         build-essential \
         ca-certificates \
         curl \
-        libpcre3-dev \
+        libpcre2-dev \
         libssl-dev \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
@@ -73,7 +73,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
-        libpcre3 \
+        libpcre2-8-0 \
         libssl3 \
         zlib1g && \
     rm -rf /var/lib/apt/lists/* && \
@@ -81,6 +81,7 @@ RUN apt-get update && \
     useradd --system --uid 101 --gid nginx --home-dir /var/cache/nginx --shell /usr/sbin/nologin nginx
 
 COPY --from=builder /usr/local/sbin/nginx /usr/local/sbin/nginx
+COPY --from=builder /etc/nginx/ /etc/nginx/
 COPY --from=builder /stat.xsl /etc/nginx/stat.xsl
 COPY nginx.conf /etc/nginx/nginx.conf
 
