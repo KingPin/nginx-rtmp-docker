@@ -21,6 +21,12 @@ docker run --rm -d \
   ghcr.io/kingpin/nginx-rtmp-docker:latest
 ```
 
+Or with Docker Compose, using the `compose.yaml` at the repo root:
+
+```sh
+docker compose up -d
+```
+
 ## Endpoints
 
 | Purpose       | URL                                            |
@@ -113,6 +119,21 @@ docker run --rm -d \
 If you need to record streams, mount a writable volume at
 `/var/cache/nginx/hls` (or wherever you point `hls_path`), and ensure it's
 writable by uid 101.
+
+## Examples
+
+Drop-in `nginx.conf` variants for common setups live in [`examples/`](examples/):
+
+- **Recording to disk** — every publish written as a timestamped flv
+- **Multi-target restream** — mirror one ingest to YouTube, Twitch, etc.
+  simultaneously
+- **on_publish authentication** — validate stream keys via an HTTP callback
+- **/stat + dashboard allow-list** — restrict the operator surfaces to a
+  CIDR
+- **Caddy TLS sidecar** — reverse-proxy the HTTP endpoints behind
+  Let's Encrypt with basic auth
+
+See [`examples/README.md`](examples/README.md) for how to mount one.
 
 ## License
 

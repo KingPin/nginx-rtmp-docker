@@ -1,0 +1,29 @@
+# Minimal Compose file for running the published image.
+#
+#   docker compose up -d
+#
+# Override the image (e.g. to a local build tagged `nginx-rtmp:dev`) by
+# editing the `image:` line or setting NGINX_RTMP_IMAGE in the environment.
+
+services:
+  nginx-rtmp:
+    image: ${NGINX_RTMP_IMAGE:-ghcr.io/kingpin/nginx-rtmp-docker:latest}
+    container_name: nginx-rtmp
+    restart: unless-stopped
+    ports:
+      - "1935:1935"   # RTMP ingest
+      - "8080:8080"   # HLS playback, /stat XML, dashboard, /healthz
+    # Uncomment to persist HLS segments and (if you enable recording in
+    # nginx.conf) recorded files across container restarts. The directory
+    # must be writable by uid 101.
+    # volumes:
+    #   - ./data/hls:/var/cache/nginx/hls
+    # To run with a custom config, mount it read-only at /etc/nginx/nginx.conf:
+    # volumes:
+    #   - ./examples/nginx-record-to-disk.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3

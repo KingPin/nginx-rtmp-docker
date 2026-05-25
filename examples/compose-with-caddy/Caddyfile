@@ -1,0 +1,22 @@
+# Replace stream.example.com with the hostname pointing at this host.
+stream.example.com {
+    encode zstd gzip
+
+    # HLS playback — open. Anyone with the URL can watch.
+    handle /hls/* {
+        reverse_proxy nginx-rtmp:8080
+    }
+
+    # Health probe — open. Lets external checkers reach it.
+    handle /healthz {
+        reverse_proxy nginx-rtmp:8080
+    }
+
+    # Operator surfaces (dashboard, /stat, stat.xsl) — basic auth.
+    # Generate the hash with: docker run --rm caddy:2-alpine caddy hash-password
+    basicauth /* {
+        operator $2a$14$REPLACE_ME_WITH_BCRYPT_HASH
+    }
+
+    reverse_proxy nginx-rtmp:8080
+}
