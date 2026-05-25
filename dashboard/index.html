@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>nginx-rtmp dashboard</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header id="server-header">
+    <h1>nginx-rtmp</h1>
+    <div id="server-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">connecting…</span>
+    </div>
+    <dl id="server-meta">
+      <dt>uptime</dt><dd id="uptime">–</dd>
+      <dt>in</dt><dd id="bw-in">–</dd>
+      <dt>out</dt><dd id="bw-out">–</dd>
+      <dt>nginx</dt><dd id="nginx-version">–</dd>
+      <dt>rtmp</dt><dd id="rtmp-version">–</dd>
+    </dl>
+  </header>
+
+  <main id="streams">
+    <p class="empty">Loading…</p>
+  </main>
+
+  <footer>
+    <span>Auto-refreshing every 5s.</span>
+    <a href="./stat" target="_blank" rel="noopener">raw /stat XML</a>
+  </footer>
+
+  <template id="stream-row-template">
+    <article class="stream">
+      <header class="stream-head">
+        <h2 class="stream-name"></h2>
+        <span class="stream-summary"></span>
+      </header>
+      <dl class="stream-urls">
+        <dt>RTMP ingest</dt>
+        <dd><code class="rtmp-url"></code> <button class="copy" type="button">copy</button></dd>
+        <dt>HLS playback</dt>
+        <dd><code class="hls-url"></code> <button class="copy" type="button">copy</button></dd>
+      </dl>
+      <button class="preview-toggle" type="button">Preview ▾</button>
+      <div class="preview" hidden>
+        <video controls muted playsinline></video>
+      </div>
+    </article>
+  </template>
+
+  <script src="./vendor/hls.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

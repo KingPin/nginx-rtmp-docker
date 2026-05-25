@@ -3,10 +3,12 @@
 ARG DEBIAN_TAG=trixie-slim
 ARG NGINX_VERSION=1.30.2
 ARG NGINX_RTMP_COMMIT=6c7719d0ba32e00b563ec70bd43dad11960fa9c4
+ARG HLS_JS_VERSION=1.5.17
 
 FROM debian:${DEBIAN_TAG} AS builder
 ARG NGINX_VERSION
 ARG NGINX_RTMP_COMMIT
+ARG HLS_JS_VERSION
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -28,6 +30,11 @@ RUN curl -fsSL "https://github.com/arut/nginx-rtmp-module/archive/${NGINX_RTMP_C
     tar -xzf rtmp.tar.gz && \
     mv "nginx-rtmp-module-${NGINX_RTMP_COMMIT}" nginx-rtmp-module && \
     rm rtmp.tar.gz
+
+# Vendored hls.js for the dashboard's preview player on non-Safari browsers.
+RUN curl -fsSL \
+        "https://cdn.jsdelivr.net/npm/hls.js@${HLS_JS_VERSION}/dist/hls.min.js" \
+        -o /hls.min.js
 
 RUN cd "nginx-${NGINX_VERSION}" && \
     ./configure \
@@ -84,6 +91,8 @@ COPY --from=builder /usr/local/sbin/nginx /usr/local/sbin/nginx
 COPY --from=builder /etc/nginx/ /etc/nginx/
 COPY --from=builder /stat.xsl /etc/nginx/stat.xsl
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY dashboard/ /etc/nginx/dashboard/
+COPY --from=builder /hls.min.js /etc/nginx/dashboard/vendor/hls.min.js
 
 RUN mkdir -p /var/log/nginx /var/run/nginx /var/lock/nginx \
              /var/cache/nginx/hls /var/cache/nginx/client_body \

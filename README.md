@@ -27,12 +27,27 @@ docker run --rm -d \
 | ------------- | ---------------------------------------------- |
 | RTMP ingest   | `rtmp://<host>:1935/live/<stream-key>`         |
 | HLS playback  | `http://<host>:8080/hls/<stream-key>.m3u8`     |
+| Dashboard     | `http://<host>:8080/`                          |
 | Stats (XML)   | `http://<host>:8080/stat`                      |
 | Health probe  | `http://<host>:8080/healthz`                   |
 
 Pick any string for `<stream-key>`; the `live` application has no
 authentication. Don't expose 1935 directly to the public internet without a
 firewall, proxy, or `on_publish` callback in front of it.
+
+## Dashboard
+
+Open `http://<host>:8080/` for a read-only operator view: live stream list,
+per-stream bitrate / resolution / client count, ingest + playback URLs, and
+an inline HLS preview player. The page polls `/stat` every 5 seconds; it has
+no authentication of its own — put whatever auth you need in front of port
+8080.
+
+The dashboard is plain HTML/CSS/JS served by nginx — no extra process. The
+preview player uses [hls.js](https://github.com/video-dev/hls.js) on
+Chromium/Firefox and native HLS on Safari/iOS. The hls.js version is pinned
+in the `Dockerfile` (`ARG HLS_JS_VERSION`) and vendored into the image at
+build time.
 
 ## Publish a test stream
 
