@@ -104,7 +104,8 @@ COPY dashboard/ /etc/nginx/dashboard/
 COPY --from=builder /hls.min.js /etc/nginx/dashboard/vendor/hls.min.js
 
 RUN mkdir -p /var/log/nginx /var/run/nginx /var/lock/nginx \
-             /var/cache/nginx/hls /var/cache/nginx/client_body \
+             /var/cache/nginx/hls /var/cache/nginx/recordings \
+             /var/cache/nginx/client_body \
              /var/cache/nginx/proxy /var/cache/nginx/fastcgi \
              /var/cache/nginx/uwsgi /var/cache/nginx/scgi && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
